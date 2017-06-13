@@ -17,6 +17,7 @@ import Audio as AD
 from structDT import Param
 from structDT import Signal
 import SineModel as SM
+import PartialsUtil as PU
 import FormatTransform as FT
 
 #########################################################################
@@ -88,8 +89,57 @@ for t in np.arange(numMusics):
     #########################################################################
     ## Step 3 - Create Sinusoidal Partials
     tic = time.time()
-    Partials = SM.PT_Algo_FM_C( Mix.mXdB, Mix.ploc, Voice.IBMPeak, Parm )
+    Partials = SM.PT_Algo_FM_C( Mix.mXdB.transpose(), Mix.ploc.transpose(), Voice.IBMPeak.transpose(), Parm )
     toc = time.time() - tic
-    print('Create Sinusoidal Partials needs %.2f sec\n' % toc);
+    print('Create Sinusoidal Partials needs %.2f sec' % toc);
 
+    #########################################################################
+    ## Step 4 - Classify Sinusoidal Partials
+    tic = time.time()
+    Voice.Partials, Song.Partials = PU.ClassifyPartials( Partials )
+    toc = time.time() - tic
+    print('Classify Sinusoidal Partials need %.2f sec' % toc)
 
+    #########################################################################
+    ## Step 5 - iSTFT/AddSynth
+    tic = time.time()
+    mV = FT.PartialsToBinaryMask( Voice.Partials, Parm ) * Mix.mX;
+    mV[mV<np.finfo(np.float32).eps] = np.finfo(np.float32).eps
+    mS = FT.PartialsToBinaryMask( Song.Partials, Parm ) * Mix.mX;
+    mS[mS<np.finfo(np.float32).eps] = np.finfo(np.float32).eps
+    Voice.IBMPeaky = SM.istft(mV, Mix.pX, Parm )
+    Voice.IBMPeaky = AD.scaleAudio( Voice.IBMPeaky, MinAmp, MaxAmp )
+    Song.IBMPeaky = SM.istft(mS, Mix.pX, Parm )
+    Song.IBMPeaky = AD.scaleAudio( Song.IBMPeaky, MinAmp, MaxAmp )
+    
+    Voice.PMask = FT.PartialsToBinaryMask( Voice.Partials, Parm );
+    mVdB = Voice.PMask * Mix.mXdB;
+    mVdB = FT.prepareSineSynth( mVdB, Voice.PMask, Parm );
+    pV = FT.prepareSineSynth( Mix.pX, Voice.PMask, Parm );
+    Song.PMask = FT.PartialsToBinaryMask( Song.Partials, Parm );    
+    mSdB = Song.PMask * Mix.mXdB;
+    mSdB = FT.prepareSineSynth( mSdB, Song.PMask, Parm );
+    pS = FT.prepareSineSynth( Mix.pX, Song.PMask, Parm );
+    Voice.IBMPeakSiney = SM.sineSynth( mVdB, pV, Voice.PMask, Parm );
+    Voice.IBMPeakSiney = AD.scaleAudio( Voice.IBMPeakSiney, MinAmp, MaxAmp );
+    Song.IBMPeakSiney = SM.sineSynth( mSdB, pS, Song.PMask, Parm );
+    Song.IBMPeakSiney = AD.scaleAudio( Song.IBMPeakSiney, MinAmp, MaxAmp );
+    
+    toc = time.time() - tic
+    print('Computing iSTFT need %.2f sec' % toc)
+    
+    #########################################################################
+    ## Step 4 - genSound
+    tic = time.time()
+    if t < 137:
+        AD.audiowrite(AudioOutDirStr+'/FM_iSTFT_2048_8192_512_42_001_30_4_4/'+str(t+1)+'_Voice_'+WavFileNames[t][-15:], Voice.IBMPeaky, fs );
+        AD.audiowrite(AudioOutDirStr+'/FM_iSTFT_2048_8192_512_42_001_30_4_4/'+str(t+1)+'_Song_'+WavFileNames[t][-15:], Song.IBMPeaky, fs );
+        AD.audiowrite(AudioOutDirStr+'/FM_AS_2048_8192_512_42_001_30_4_4/'+str(t+1)+'_Voice_'+WavFileNames[t][-15:], Voice.IBMPeakSiney, fs );
+        AD.audiowrite(AudioOutDirStr+'/FM_AS_2048_8192_512_42_001_30_4_4/'+str(t+1)+'_Song_'+WavFileNames[t][-15:], Song.IBMPeakSiney, fs );
+    else:
+        AD.audiowrite(AudioOutDirStr+'/FM_iSTFT_2048_8192_512_42_001_30_4_4/'+str(t+1)+'_Voice_'+WavFileNames[t][-16:], Voice.IBMPeaky, fs );
+        AD.audiowrite(AudioOutDirStr+'/FM_iSTFT_2048_8192_512_42_001_30_4_4/'+str(t+1)+'_Song_'+WavFileNames[t][-16:], Song.IBMPeaky, fs );    
+        AD.audiowrite(AudioOutDirStr+'/FM_AS_2048_8192_512_42_001_30_4_4/'+str(t+1)+'_Voice_'+WavFileNames[t][-16:], Voice.IBMPeakSiney, fs );
+        AD.audiowrite(AudioOutDirStr+'/FM_AS_2048_8192_512_42_001_30_4_4/'+str(t+1)+'_Song_'+WavFileNames[t][-16:], Song.IBMPeakSiney, fs );
+    toc = time.time() - tic
+    print('genSound needs %.2f sec' % toc)
