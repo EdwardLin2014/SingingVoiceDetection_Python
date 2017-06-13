@@ -129,7 +129,7 @@ for t in np.arange(numMusics):
     print('Computing iSTFT need %.2f sec' % toc)
     
     #########################################################################
-    ## Step 4 - genSound
+    ## Step 6 - genSound
     tic = time.time()
     if t < 137:
         AD.audiowrite(AudioOutDirStr+'/FM_iSTFT_2048_8192_512_42_001_30_4_4/'+str(t+1)+'_Voice_'+WavFileNames[t][-15:], Voice.IBMPeaky, fs );
