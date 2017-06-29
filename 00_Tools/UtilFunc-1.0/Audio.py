@@ -2,18 +2,18 @@ import os, sys
 import numpy as np
 import copy
 from scipy.io.wavfile import read, write
-try:
-	import cAudio
-except ImportError:
-	print("\n")
-	print("-------------------------------------------------------------------------------")
-	print("Warning:")
-	print("Cython modules for some of the core functions were not imported.")
-	print("Please execute the following command under this directory: python compileAudioModule.py build_ext --inplace")
-	print("Exiting the code!!")
-	print("-------------------------------------------------------------------------------")
-	print("\n")
-	sys.exit(0)
+#try:
+#	import cAudio
+#except ImportError:
+#	print("\n")
+#	print("-------------------------------------------------------------------------------")
+#	print("Warning:")
+#	print("Cython modules for some of the core functions were not imported.")
+#	print("Please execute the following command under this directory: python compileAudioModule.py build_ext --inplace")
+#	print("Exiting the code!!")
+#	print("-------------------------------------------------------------------------------")
+#	print("\n")
+#	sys.exit(0)
     
 INT16_FAC = (2**15)-1
 INT32_FAC = (2**31)-1
