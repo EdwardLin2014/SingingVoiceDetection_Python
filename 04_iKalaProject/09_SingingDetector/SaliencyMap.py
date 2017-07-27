@@ -114,4 +114,3 @@ negMap[negMap>threshold] = 1
 plt.imshow(negMap)
 plt.gca().invert_yaxis()
 plt.show()
-#, cmap='gray'
